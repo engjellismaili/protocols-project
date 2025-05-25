@@ -63,6 +63,6 @@ const config: HardhatUserConfig = {
     // coinmarketcap: process.env.COINMARKETCAP_API_KEY, // Optional: Get live gas prices
   }
 };
-```
 
 export default config;
+```
