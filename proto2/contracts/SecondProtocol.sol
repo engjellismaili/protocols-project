@@ -57,4 +57,8 @@ contract SecondProtocol {
     function GetEntry(bytes32 pid) external view returns (Entry memory) {
         return _entries[pid];
     }
+
+    function getTimestamp() view external returns (uint256){
+        return block.timestamp;
+    }
 }
