@@ -41,8 +41,8 @@ describe("SecondProtocol", function () {
             
             // Set up the parameters
             const currentTimestamp = await secondProtocol.getTimestamp();
-            const t1 = currentTimestamp; // Current timestamp
-            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
+            const t1 = currentTimestamp + BigInt(7200); // 2 hours in the future (MUST BE AFTER CURRENT TIME)
+            const t2 = currentTimestamp + BigInt(10800); // 3 hours in the future (MUST BE AFTER t1)
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -83,7 +83,7 @@ describe("SecondProtocol", function () {
             const bob = addr2;
             
             const currentTimestamp = await secondProtocol.getTimestamp();
-            const t1 = currentTimestamp - BigInt(7200); // 2 hours in the past
+            const t1 = currentTimestamp + BigInt(3600); // 1 hour in the future
             const t2 = currentTimestamp - BigInt(3600); // 1 hour in the past
             
             // Create signatures (these won't be checked because the function will fail early)
@@ -97,6 +97,26 @@ describe("SecondProtocol", function () {
                 )
             ).to.be.revertedWith("t2 must be in the future");
         });
+
+        it("should reject when t1 is in the past", async function () {
+            const alice = addr1;
+            const bob = addr2;
+            
+            const currentTimestamp = await secondProtocol.getTimestamp();
+            const t1 = currentTimestamp - BigInt(3600); // 1 hour in the past
+            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
+            
+            // Create signatures
+            const aliceSignature = "0x";
+            const bobSignature = "0x";
+            
+            // Call should fail with t1 in the past
+            await expect(
+                secondProtocol.connect(bob).Trigger(
+                    testHash, t1, t2, aliceSignature, bobSignature, alice.address
+                )
+            ).to.be.revertedWith("can trigger only before t1");
+        });
         
         it("should reject invalid Alice signatures", async function () {
             const alice = addr1;
@@ -105,8 +125,8 @@ describe("SecondProtocol", function () {
             
             // Set up the parameters
             const currentTimestamp = await secondProtocol.getTimestamp();
-            const t1 = currentTimestamp;
-            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
+            const t1 = currentTimestamp + BigInt(7200); // 2 hours in the future
+            const t2 = currentTimestamp + BigInt(10800); // 3 hours in the future
             
             // Create the message hash
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -138,8 +158,8 @@ describe("SecondProtocol", function () {
             
             // Set up the parameters
             const currentTimestamp = await secondProtocol.getTimestamp();
-            const t1 = currentTimestamp;
-            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
+            const t1 = currentTimestamp + BigInt(7200); // 2 hours in the future
+            const t2 = currentTimestamp + BigInt(10800); // 3 hours in the future
             
             // Create the message hash
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -170,8 +190,8 @@ describe("SecondProtocol", function () {
             
             // Set up the parameters
             const currentTimestamp = await secondProtocol.getTimestamp();
-            const t1 = currentTimestamp;
-            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
+            const t1 = currentTimestamp + BigInt(7200); // 2 hours in the future
+            const t2 = currentTimestamp + BigInt(10800); // 3 hours in the future
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -207,8 +227,8 @@ describe("SecondProtocol", function () {
             
             // Set up the parameters
             const currentTimestamp = await secondProtocol.getTimestamp();
-            const t1 = currentTimestamp;
-            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
+            const t1 = currentTimestamp + BigInt(7200); // 2 hours in the future
+            const t2 = currentTimestamp + BigInt(10800); // 3 hours in the future
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -247,8 +267,8 @@ describe("SecondProtocol", function () {
             
             // Set up the parameters
             const currentTimestamp = await secondProtocol.getTimestamp();
-            const t1 = currentTimestamp;
-            t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
+            const t1 = currentTimestamp + BigInt(7200); // 2 hours in the future
+            t2 = currentTimestamp + BigInt(10800); // 3 hours in the future
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -301,7 +321,7 @@ describe("SecondProtocol", function () {
             const testKey = ethers.keccak256(ethers.toUtf8Bytes("test key"));
             
             // Increase time to after the deadline
-            await time.increase(3601);
+            await time.increase(10801);
             
             await expect(
                 secondProtocol.connect(alice).SetK(pid, testKey)
@@ -340,8 +360,8 @@ describe("SecondProtocol", function () {
             
             // Set up the parameters
             const currentTimestamp = await secondProtocol.getTimestamp();
-            const t1 = currentTimestamp;
-            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
+            const t1 = currentTimestamp + BigInt(7200); // 2 hours in the future
+            const t2 = currentTimestamp + BigInt(10800); // 3 hours in the future
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -403,8 +423,8 @@ describe("SecondProtocol", function () {
             
             // Set up the parameters for a workflow
             const currentTimestamp = await secondProtocol.getTimestamp();
-            const t1 = currentTimestamp;
-            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
+            const t1 = currentTimestamp + BigInt(7200); // 2 hours in the future
+            const t2 = currentTimestamp + BigInt(10800); // 3 hours in the future
             
             // Create the message hashes for the workflow
             const aliceMessageHash = ethers.solidityPackedKeccak256(
