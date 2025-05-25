@@ -5,7 +5,7 @@ async function main() {
   const fp = await SecondProtocol.deploy();
   await fp.waitForDeployment();
 
-  console.log("FirstProtocol deployed to:", await fp.getAddress());
+  console.log("SecondProtocol deployed to:", await fp.getAddress());
 }
 
 main().catch((err) => {
