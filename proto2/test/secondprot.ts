@@ -40,8 +40,9 @@ describe("SecondProtocol", function () {
             const bob = addr2;
             
             // Set up the parameters
-            const t1 = Math.floor(Date.now() / 1000); // Current timestamp
-            const t2 = t1 + 3600; // 1 hour in the future
+            const currentTimestamp = await secondProtocol.getTimestamp();
+            const t1 = currentTimestamp; // Current timestamp
+            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -81,8 +82,9 @@ describe("SecondProtocol", function () {
             const alice = addr1;
             const bob = addr2;
             
-            const t1 = Math.floor(Date.now() / 1000) - 7200; // 2 hours in the past
-            const t2 = Math.floor(Date.now() / 1000) - 3600; // 1 hour in the past
+            const currentTimestamp = await secondProtocol.getTimestamp();
+            const t1 = currentTimestamp - BigInt(7200); // 2 hours in the past
+            const t2 = currentTimestamp - BigInt(3600); // 1 hour in the past
             
             // Create signatures (these won't be checked because the function will fail early)
             const aliceSignature = "0x";
@@ -102,8 +104,9 @@ describe("SecondProtocol", function () {
             const malicious = addr3;
             
             // Set up the parameters
-            const t1 = Math.floor(Date.now() / 1000);
-            const t2 = t1 + 3600; // 1 hour in the future
+            const currentTimestamp = await secondProtocol.getTimestamp();
+            const t1 = currentTimestamp;
+            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
             
             // Create the message hash
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -134,8 +137,9 @@ describe("SecondProtocol", function () {
             const malicious = addr3;
             
             // Set up the parameters
-            const t1 = Math.floor(Date.now() / 1000);
-            const t2 = t1 + 3600; // 1 hour in the future
+            const currentTimestamp = await secondProtocol.getTimestamp();
+            const t1 = currentTimestamp;
+            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
             
             // Create the message hash
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -165,8 +169,9 @@ describe("SecondProtocol", function () {
             const bob = addr2;
             
             // Set up the parameters
-            const t1 = Math.floor(Date.now() / 1000);
-            const t2 = t1 + 3600; // 1 hour in the future
+            const currentTimestamp = await secondProtocol.getTimestamp();
+            const t1 = currentTimestamp;
+            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -201,8 +206,9 @@ describe("SecondProtocol", function () {
             const bob = addr2;
             
             // Set up the parameters
-            const t1 = Math.floor(Date.now() / 1000);
-            const t2 = t1 + 3600; // 1 hour in the future
+            const currentTimestamp = await secondProtocol.getTimestamp();
+            const t1 = currentTimestamp;
+            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -233,15 +239,16 @@ describe("SecondProtocol", function () {
         let pid: string;
         let alice: SignerWithAddress;
         let bob: SignerWithAddress;
-        let t2: number;
+        let t2: bigint;
         
         beforeEach(async function () {
             alice = addr1;
             bob = addr2;
             
             // Set up the parameters
-            const t1 = Math.floor(Date.now() / 1000);
-            t2 = t1 + 3600; // 1 hour in the future
+            const currentTimestamp = await secondProtocol.getTimestamp();
+            const t1 = currentTimestamp;
+            t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -332,8 +339,9 @@ describe("SecondProtocol", function () {
             bob = addr2;
             
             // Set up the parameters
-            const t1 = Math.floor(Date.now() / 1000);
-            const t2 = t1 + 3600; // 1 hour in the future
+            const currentTimestamp = await secondProtocol.getTimestamp();
+            const t1 = currentTimestamp;
+            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -394,8 +402,9 @@ describe("SecondProtocol", function () {
             console.log(`Estimated gas for deployment: ${deployEstimate.toString()}`);
             
             // Set up the parameters for a workflow
-            const t1 = Math.floor(Date.now() / 1000);
-            const t2 = t1 + 3600; // 1 hour in the future
+            const currentTimestamp = await secondProtocol.getTimestamp();
+            const t1 = currentTimestamp;
+            const t2 = currentTimestamp + BigInt(3600); // 1 hour in the future
             
             // Create the message hashes for the workflow
             const aliceMessageHash = ethers.solidityPackedKeccak256(
@@ -429,6 +438,10 @@ describe("SecondProtocol", function () {
             // GetEntry gas estimate
             const getEntryEstimate = await secondProtocol.GetEntry.estimateGas(pid);
             console.log(`Gas estimate for GetEntry in workflow: ${getEntryEstimate.toString()}`);
+            
+            // Log current timestamp
+            const finalTimestamp = await secondProtocol.getTimestamp();
+            console.log(`Current timestamp at end of test: ${finalTimestamp.toString()}`);
         });
     });
     
