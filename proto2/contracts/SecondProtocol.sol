@@ -25,6 +25,7 @@ contract SecondProtocol {
 
     function Trigger(bytes32 h, uint256 t1, uint256 t2, bytes memory siga, bytes memory sigb, address alice) external {
         require(t2 > block.timestamp, "t2 must be in the future");
+        require(block.timestamp < t1, "can trigger only before t1");
         bytes32 pid = _pid(alice, msg.sender, h);
         require(_entries[pid].sender == address(0), "Entry already exists");
 
