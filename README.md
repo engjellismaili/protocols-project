@@ -20,6 +20,11 @@ The directory should be like :
 contracts/      hardhat.config.ts  scripts/   test/
 ```
 
+You can install @openzeppelin, that will be used in the contracts :
+```shell
+npm install @openzeppelin/contracts
+```
+
 To compile the project :
 ```shell
 npx hardhat compile
