@@ -49,4 +49,25 @@ contract ThirdProtocol {
         });
     }
 
+    function SendOp(bytes32 k, uint256 r, bytes32 pid) external {
+        Entry storage e = _entries[pid];
+        require(e.sender != address(0), "Unknown pid"); // There wasn't an entry at this pid
+        require(msg.sender == e.sender, "Not allowed"); // Only sender should call this method
+        require(block.timestamp <= e.t2, "t2 already passed");
+        require(e.k == bytes32(0), "Key already set");
+
+        // Verify the commitment
+        bytes32 commitment = keccak256(abi.encodePacked(k, r));
+        require(commitment == e.c, "Invalid commitment");
+
+        e.k = k; // Set the encryption key
+    }
+
+    function GetEntry(bytes32 pid) external view returns (Entry memory) {
+        return _entries[pid];
+    }
+
+    function getTimestamp() view external returns (uint256){
+        return block.timestamp;
+    }
 }
