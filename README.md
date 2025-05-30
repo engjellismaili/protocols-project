@@ -1,3 +1,5 @@
+The gas cost report can be found in the /test/ folder for each protocol.
+
 Commands to run when creating a new hardhat project :
 
 ```shell
