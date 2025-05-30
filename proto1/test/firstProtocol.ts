@@ -49,7 +49,7 @@ describe("FirstProtocol", function () {
             const pastDeadline = currentTimestamp - BigInt(3600); // 1 hour in the past
             
             await expect(firstProtocol.connect(addr1).SetT(pastDeadline))
-                .to.be.revertedWith("t2 must be in the future");
+                .to.be.revertedWithCustomError(firstProtocol, "DeadlineMustBeFuture");
         });
     });
 
@@ -99,7 +99,7 @@ describe("FirstProtocol", function () {
                 .withArgs(1);
         });
 
-        it("should revert when trying to set key after deadline", async function () {
+        it("should revert with DeadlinePassed when trying to set key after deadline", async function () {
             const currentTimestamp = await firstProtocol.getTimestamp();
             const futureDeadline = currentTimestamp + BigInt(3600); // 1 hour in the future
             
@@ -111,7 +111,7 @@ describe("FirstProtocol", function () {
             const testKey = ethers.keccak256(ethers.toUtf8Bytes("test key"));
             
             await expect(firstProtocol.connect(addr1).SetK(1, testKey))
-                .to.be.revertedWith("t2 already passed");
+                .to.be.revertedWithCustomError(firstProtocol, "DeadlinePassed");
         });
 
         it("should revert with KeyAlreadySet when trying to set key twice", async function () {
@@ -127,6 +127,18 @@ describe("FirstProtocol", function () {
             await expect(firstProtocol.connect(addr1).SetK(1, newKey))
                 .to.be.revertedWithCustomError(firstProtocol, "KeyAlreadySet")
                 .withArgs(1);
+        });
+        
+        it("should revert with KeyCannotBeZero when trying to set zero key", async function () {
+            const currentTimestamp = await firstProtocol.getTimestamp();
+            const futureDeadline = currentTimestamp + BigInt(3600); // 1 hour in the future
+            
+            await firstProtocol.connect(addr1).SetT(futureDeadline);
+            
+            const zeroKey = ethers.ZeroHash; // 0x0000...0000
+            
+            await expect(firstProtocol.connect(addr1).SetK(1, zeroKey))
+                .to.be.revertedWithCustomError(firstProtocol, "KeyCannotBeZero");
         });
     });
 
@@ -189,6 +201,10 @@ describe("FirstProtocol", function () {
             // GetEntry gas estimate
             const getEntryEstimate = await firstProtocol.GetEntry.estimateGas(1);
             console.log(`Gas estimate for GetEntry in workflow: ${getEntryEstimate.toString()}`);
+            
+            console.log("\nComparing gas usage between functions:");
+            console.log(`SetT gas usage: ${setTReceipt?.gasUsed.toString()}`);
+            console.log(`SetK gas usage: ${setKReceipt?.gasUsed.toString()}`);
         });
     });
 });
