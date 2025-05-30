@@ -46,12 +46,12 @@ describe("SecondProtocol", function () {
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256', 'uint256', 'address'],
+                ['bytes32', 'uint48', 'uint48', 'address'],
                 [testHash, t1, t2, bob.address]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256'],
+                ['bytes32', 'uint48'],
                 [testHash, t2]
             );
             
@@ -95,7 +95,7 @@ describe("SecondProtocol", function () {
                 secondProtocol.connect(bob).Trigger(
                     testHash, t1, t2, aliceSignature, bobSignature, alice.address
                 )
-            ).to.be.revertedWith("t2 must be in the future");
+            ).to.be.revertedWithCustomError(secondProtocol, "T2MustBeFuture");
         });
 
         it("should reject when t1 is in the past", async function () {
@@ -115,7 +115,7 @@ describe("SecondProtocol", function () {
                 secondProtocol.connect(bob).Trigger(
                     testHash, t1, t2, aliceSignature, bobSignature, alice.address
                 )
-            ).to.be.revertedWith("can trigger only before t1");
+            ).to.be.revertedWithCustomError(secondProtocol, "OnlyBeforeT1");
         });
         
         it("should reject invalid Alice signatures", async function () {
@@ -130,12 +130,12 @@ describe("SecondProtocol", function () {
             
             // Create the message hash
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256', 'uint256', 'address'],
+                ['bytes32', 'uint48', 'uint48', 'address'],
                 [testHash, t1, t2, bob.address]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256'],
+                ['bytes32', 'uint48'],
                 [testHash, t2]
             );
             
@@ -148,7 +148,7 @@ describe("SecondProtocol", function () {
                 secondProtocol.connect(bob).Trigger(
                     testHash, t1, t2, fakeAliceSignature, bobSignature, alice.address
                 )
-            ).to.be.revertedWith("Invalid Alice signature");
+            ).to.be.revertedWithCustomError(secondProtocol, "InvalidSignature");
         });
         
         it("should reject invalid Bob signatures", async function () {
@@ -163,12 +163,12 @@ describe("SecondProtocol", function () {
             
             // Create the message hash
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256', 'uint256', 'address'],
+                ['bytes32', 'uint48', 'uint48', 'address'],
                 [testHash, t1, t2, bob.address]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256'],
+                ['bytes32', 'uint48'],
                 [testHash, t2]
             );
             
@@ -181,7 +181,7 @@ describe("SecondProtocol", function () {
                 secondProtocol.connect(bob).Trigger(
                     testHash, t1, t2, aliceSignature, fakeBobSignature, alice.address
                 )
-            ).to.be.revertedWith("Invalid Bob signature");
+            ).to.be.revertedWithCustomError(secondProtocol, "InvalidSignature");
         });
         
         it("should reject duplicate entries", async function () {
@@ -195,12 +195,12 @@ describe("SecondProtocol", function () {
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256', 'uint256', 'address'],
+                ['bytes32', 'uint48', 'uint48', 'address'],
                 [testHash, t1, t2, bob.address]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256'],
+                ['bytes32', 'uint48'],
                 [testHash, t2]
             );
             
@@ -218,7 +218,7 @@ describe("SecondProtocol", function () {
                 secondProtocol.connect(bob).Trigger(
                     testHash, t1, t2, aliceSignature, bobSignature, alice.address
                 )
-            ).to.be.revertedWith("Entry already exists");
+            ).to.be.revertedWithCustomError(secondProtocol, "EntryAlreadyExists");
         });
         
         it("should measure gas used for Trigger", async function () {
@@ -232,12 +232,12 @@ describe("SecondProtocol", function () {
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256', 'uint256', 'address'],
+                ['bytes32', 'uint48', 'uint48', 'address'],
                 [testHash, t1, t2, bob.address]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256'],
+                ['bytes32', 'uint48'],
                 [testHash, t2]
             );
             
@@ -272,12 +272,12 @@ describe("SecondProtocol", function () {
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256', 'uint256', 'address'],
+                ['bytes32', 'uint48', 'uint48', 'address'],
                 [testHash, t1, t2, bob.address]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256'],
+                ['bytes32', 'uint48'],
                 [testHash, t2]
             );
             
@@ -310,11 +310,11 @@ describe("SecondProtocol", function () {
             
             await expect(
                 secondProtocol.connect(bob).SetK(pid, testKey)
-            ).to.be.revertedWith("Not allowed");
+            ).to.be.revertedWithCustomError(secondProtocol, "NotAllowed");
             
             await expect(
                 secondProtocol.connect(owner).SetK(pid, testKey)
-            ).to.be.revertedWith("Not allowed");
+            ).to.be.revertedWithCustomError(secondProtocol, "NotAllowed");
         });
         
         it("should reject setting key after deadline", async function () {
@@ -325,7 +325,7 @@ describe("SecondProtocol", function () {
             
             await expect(
                 secondProtocol.connect(alice).SetK(pid, testKey)
-            ).to.be.revertedWith("t2 already passed");
+            ).to.be.revertedWithCustomError(secondProtocol, "DeadlinePassed");
         });
         
         it("should reject setting key twice", async function () {
@@ -336,7 +336,7 @@ describe("SecondProtocol", function () {
             
             await expect(
                 secondProtocol.connect(alice).SetK(pid, testKey2)
-            ).to.be.revertedWith("Key already set");
+            ).to.be.revertedWithCustomError(secondProtocol, "KeyAlreadySet");
         });
         
         it("should reject unknown pid", async function () {
@@ -345,7 +345,7 @@ describe("SecondProtocol", function () {
             
             await expect(
                 secondProtocol.connect(alice).SetK(fakePid, testKey)
-            ).to.be.revertedWith("Unknown pid");
+            ).to.be.revertedWithCustomError(secondProtocol, "UnknownPid");
         });
     });
 
@@ -365,12 +365,12 @@ describe("SecondProtocol", function () {
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256', 'uint256', 'address'],
+                ['bytes32', 'uint48', 'uint48', 'address'],
                 [testHash, t1, t2, bob.address]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256'],
+                ['bytes32', 'uint48'],
                 [testHash, t2]
             );
             
@@ -428,12 +428,12 @@ describe("SecondProtocol", function () {
             
             // Create the message hashes for the workflow
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256', 'uint256', 'address'],
+                ['bytes32', 'uint48', 'uint48', 'address'],
                 [testHash, t1, t2, bob.address]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'uint256'],
+                ['bytes32', 'uint48'],
                 [testHash, t2]
             );
             
@@ -462,6 +462,11 @@ describe("SecondProtocol", function () {
             // Log current timestamp
             const finalTimestamp = await secondProtocol.getTimestamp();
             console.log(`Current timestamp at end of test: ${finalTimestamp.toString()}`);
+            
+            // Compare gas usage between old and optimized implementation
+            console.log("\nGas usage comparison:");
+            console.log(`Optimized Trigger function gas: ${triggerReceipt?.gasUsed.toString()}`);
+            console.log(`Optimized SetK function gas: ${setKReceipt?.gasUsed.toString()}`);
         });
     });
     
