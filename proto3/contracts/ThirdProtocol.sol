@@ -6,9 +6,10 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 contract ThirdProtocol {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
+    
     struct Entry {
         address sender;
-        uint256 t2;
+        uint48 t2;       // Using uint48 instead of uint256 for gas savings
         bytes sig;
         // commitment c
         bytes32 c;
@@ -17,48 +18,71 @@ contract ThirdProtocol {
     }
 
     mapping(bytes32 pid => Entry) private _entries;
+    
+    // Custom errors for gas savings
+    error OnlyBeforeT1();
+    error T2MustBeFuture();
+    error T2MustBeAfterT1();
+    error EntryAlreadyExists();
+    error InvalidSignature();
+    error UnknownPid();
+    error NotAllowed();
+    error DeadlinePassed();
+    error KeyAlreadySet();
+    error InvalidCommitment();
 
     function _pid(address alice, address bob, bytes32 h) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(alice, bob, h));
     }
 
-    function _verify(bytes32 data, bytes memory signature, address signer) internal pure returns (bool) {
+    function _verify(bytes32 data, bytes calldata signature, address signer) internal pure returns (bool) {
         return data.toEthSignedMessageHash().recover(signature) == signer;
     }
 
-    function TriggerDispute(bytes memory siga, bytes memory sigb, bytes32 c, bytes32 h, uint256 t1, uint256 t2, address alice) external {
-        require(block.timestamp < t1, "can trigger only before t1");
-        require(t2 > block.timestamp, "t2 must be in the future");
-        require(t2 > t1, "t2 must be after t1");
+    function TriggerDispute(
+        bytes calldata siga, 
+        bytes calldata sigb, 
+        bytes32 c, 
+        bytes32 h, 
+        uint48 t1, 
+        uint48 t2, 
+        address alice
+    ) external {
+        // Use custom errors instead of require statements
+        if (uint48(block.timestamp) >= t1) revert OnlyBeforeT1();
+        if (t2 <= uint48(block.timestamp)) revert T2MustBeFuture();
+        if (t2 <= t1) revert T2MustBeAfterT1();
+        
         bytes32 pid = _pid(alice, msg.sender, h);
-        require(_entries[pid].sender == address(0), "Entry already exists");
+        if (_entries[pid].sender != address(0)) revert EntryAlreadyExists();
 
         // Verify Alice's signature (siga)
         bytes32 aliceHash = keccak256(abi.encodePacked(c, h, msg.sender, t1, t2, pid));
-        require(_verify(aliceHash, siga, alice), "Invalid Alice signature");
+        if (!_verify(aliceHash, siga, alice)) revert InvalidSignature();
+        
         // Verify Bob's signature (sigb)
         bytes32 bobHash = keccak256(abi.encodePacked(c, h, t2, pid));
-        require(_verify(bobHash, sigb, msg.sender), "Invalid Bob signature");
-        // Store the entry
-        _entries[pid] = Entry({
-            sender: alice,
-            sig: sigb,
-            t2: t2,
-            c: c,
-            k: bytes32(0)
-        });
+        if (!_verify(bobHash, sigb, msg.sender)) revert InvalidSignature();
+        
+        // Store the entry directly without struct initialization
+        Entry storage entry = _entries[pid];
+        entry.sender = alice;
+        entry.sig = sigb;
+        entry.t2 = t2;
+        entry.c = c;
+        // No need to set k to 0 as it's the default value
     }
 
     function SendOp(bytes32 k, uint256 r, bytes32 pid) external {
         Entry storage e = _entries[pid];
-        require(e.sender != address(0), "Unknown pid"); // There wasn't an entry at this pid
-        require(msg.sender == e.sender, "Not allowed"); // Only sender should call this method
-        require(block.timestamp <= e.t2, "t2 already passed");
-        require(e.k == bytes32(0), "Key already set");
+        if (e.sender == address(0)) revert UnknownPid();
+        if (msg.sender != e.sender) revert NotAllowed();
+        if (uint48(block.timestamp) > e.t2) revert DeadlinePassed();
+        if (e.k != bytes32(0)) revert KeyAlreadySet();
 
         // Verify the commitment
         bytes32 commitment = keccak256(abi.encodePacked(k, r));
-        require(commitment == e.c, "Invalid commitment");
+        if (commitment != e.c) revert InvalidCommitment();
 
         e.k = k; // Set the encryption key
     }
@@ -67,7 +91,7 @@ contract ThirdProtocol {
         return _entries[pid];
     }
 
-    function getTimestamp() view external returns (uint256){
-        return block.timestamp;
+    function getTimestamp() external view returns (uint48) {
+        return uint48(block.timestamp);
     }
 }

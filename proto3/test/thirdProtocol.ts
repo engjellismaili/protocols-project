@@ -62,12 +62,12 @@ describe("ThirdProtocol", function () {
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'address', 'uint256', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'address', 'uint48', 'uint48', 'bytes32'],
                 [testCommitment, testHash, bob.address, t1, t2, pid]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'uint48', 'bytes32'],
                 [testCommitment, testHash, t2, pid]
             );
             
@@ -111,7 +111,7 @@ describe("ThirdProtocol", function () {
                 thirdProtocol.connect(bob).TriggerDispute(
                     aliceSignature, bobSignature, testCommitment, testHash, t1, t2, alice.address
                 )
-            ).to.be.revertedWith("can trigger only before t1");
+            ).to.be.revertedWithCustomError(thirdProtocol, "OnlyBeforeT1");
         });
         
         it("should reject when t2 is in the past", async function () {
@@ -131,7 +131,7 @@ describe("ThirdProtocol", function () {
                 thirdProtocol.connect(bob).TriggerDispute(
                     aliceSignature, bobSignature, testCommitment, testHash, t1, t2, alice.address
                 )
-            ).to.be.revertedWith("t2 must be in the future");
+            ).to.be.revertedWithCustomError(thirdProtocol, "T2MustBeFuture");
         });
         
         it("should reject when t2 is before t1", async function () {
@@ -151,7 +151,7 @@ describe("ThirdProtocol", function () {
                 thirdProtocol.connect(bob).TriggerDispute(
                     aliceSignature, bobSignature, testCommitment, testHash, t1, t2, alice.address
                 )
-            ).to.be.revertedWith("t2 must be after t1");
+            ).to.be.revertedWithCustomError(thirdProtocol, "T2MustBeAfterT1");
         });
         
         it("should reject invalid Alice signatures", async function () {
@@ -169,12 +169,12 @@ describe("ThirdProtocol", function () {
             
             // Create the message hash
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'address', 'uint256', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'address', 'uint48', 'uint48', 'bytes32'],
                 [testCommitment, testHash, bob.address, t1, t2, pid]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'uint48', 'bytes32'],
                 [testCommitment, testHash, t2, pid]
             );
             
@@ -187,7 +187,7 @@ describe("ThirdProtocol", function () {
                 thirdProtocol.connect(bob).TriggerDispute(
                     fakeAliceSignature, bobSignature, testCommitment, testHash, t1, t2, alice.address
                 )
-            ).to.be.revertedWith("Invalid Alice signature");
+            ).to.be.revertedWithCustomError(thirdProtocol, "InvalidSignature");
         });
         
         it("should reject invalid Bob signatures", async function () {
@@ -205,12 +205,12 @@ describe("ThirdProtocol", function () {
             
             // Create the message hash
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'address', 'uint256', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'address', 'uint48', 'uint48', 'bytes32'],
                 [testCommitment, testHash, bob.address, t1, t2, pid]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'uint48', 'bytes32'],
                 [testCommitment, testHash, t2, pid]
             );
             
@@ -223,7 +223,7 @@ describe("ThirdProtocol", function () {
                 thirdProtocol.connect(bob).TriggerDispute(
                     aliceSignature, fakeBobSignature, testCommitment, testHash, t1, t2, alice.address
                 )
-            ).to.be.revertedWith("Invalid Bob signature");
+            ).to.be.revertedWithCustomError(thirdProtocol, "InvalidSignature");
         });
         
         it("should reject duplicate entries", async function () {
@@ -240,12 +240,12 @@ describe("ThirdProtocol", function () {
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'address', 'uint256', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'address', 'uint48', 'uint48', 'bytes32'],
                 [testCommitment, testHash, bob.address, t1, t2, pid]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'uint48', 'bytes32'],
                 [testCommitment, testHash, t2, pid]
             );
             
@@ -263,7 +263,7 @@ describe("ThirdProtocol", function () {
                 thirdProtocol.connect(bob).TriggerDispute(
                     aliceSignature, bobSignature, testCommitment, testHash, t1, t2, alice.address
                 )
-            ).to.be.revertedWith("Entry already exists");
+            ).to.be.revertedWithCustomError(thirdProtocol, "EntryAlreadyExists");
         });
         
         it("should measure gas used for TriggerDispute", async function () {
@@ -280,12 +280,12 @@ describe("ThirdProtocol", function () {
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'address', 'uint256', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'address', 'uint48', 'uint48', 'bytes32'],
                 [testCommitment, testHash, bob.address, t1, t2, pid]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'uint48', 'bytes32'],
                 [testCommitment, testHash, t2, pid]
             );
             
@@ -323,12 +323,12 @@ describe("ThirdProtocol", function () {
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'address', 'uint256', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'address', 'uint48', 'uint48', 'bytes32'],
                 [testCommitment, testHash, bob.address, t1, t2, pid]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'uint48', 'bytes32'],
                 [testCommitment, testHash, t2, pid]
             );
             
@@ -354,11 +354,11 @@ describe("ThirdProtocol", function () {
         it("should reject revealing key by non-sender", async function () {
             await expect(
                 thirdProtocol.connect(bob).SendOp(testKey, randomValue, pid)
-            ).to.be.revertedWith("Not allowed");
+            ).to.be.revertedWithCustomError(thirdProtocol, "NotAllowed");
             
             await expect(
                 thirdProtocol.connect(owner).SendOp(testKey, randomValue, pid)
-            ).to.be.revertedWith("Not allowed");
+            ).to.be.revertedWithCustomError(thirdProtocol, "NotAllowed");
         });
         
         it("should reject revealing key after deadline", async function () {
@@ -367,7 +367,7 @@ describe("ThirdProtocol", function () {
             
             await expect(
                 thirdProtocol.connect(alice).SendOp(testKey, randomValue, pid)
-            ).to.be.revertedWith("t2 already passed");
+            ).to.be.revertedWithCustomError(thirdProtocol, "DeadlinePassed");
         });
         
         it("should reject revealing key twice", async function () {
@@ -376,7 +376,7 @@ describe("ThirdProtocol", function () {
             // Try to reveal again with the same key
             await expect(
                 thirdProtocol.connect(alice).SendOp(testKey, randomValue, pid)
-            ).to.be.revertedWith("Key already set");
+            ).to.be.revertedWithCustomError(thirdProtocol, "KeyAlreadySet");
         });
         
         it("should reject unknown pid", async function () {
@@ -384,7 +384,7 @@ describe("ThirdProtocol", function () {
             
             await expect(
                 thirdProtocol.connect(alice).SendOp(testKey, randomValue, fakePid)
-            ).to.be.revertedWith("Unknown pid");
+            ).to.be.revertedWithCustomError(thirdProtocol, "UnknownPid");
         });
         
         it("should reject invalid commitment", async function () {
@@ -393,11 +393,11 @@ describe("ThirdProtocol", function () {
             
             await expect(
                 thirdProtocol.connect(alice).SendOp(wrongKey, randomValue, pid)
-            ).to.be.revertedWith("Invalid commitment");
+            ).to.be.revertedWithCustomError(thirdProtocol, "InvalidCommitment");
             
             await expect(
                 thirdProtocol.connect(alice).SendOp(testKey, wrongRandom, pid)
-            ).to.be.revertedWith("Invalid commitment");
+            ).to.be.revertedWithCustomError(thirdProtocol, "InvalidCommitment");
         });
     });
 
@@ -420,12 +420,12 @@ describe("ThirdProtocol", function () {
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'address', 'uint256', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'address', 'uint48', 'uint48', 'bytes32'],
                 [testCommitment, testHash, bob.address, t1, t2, pid]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'uint48', 'bytes32'],
                 [testCommitment, testHash, t2, pid]
             );
             
@@ -484,12 +484,12 @@ describe("ThirdProtocol", function () {
             
             // Create the message hashes for the workflow
             const aliceMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'address', 'uint256', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'address', 'uint48', 'uint48', 'bytes32'],
                 [testCommitment, testHash, bob.address, t1, t2, pid]
             );
             
             const bobMessageHash = ethers.solidityPackedKeccak256(
-                ['bytes32', 'bytes32', 'uint256', 'bytes32'],
+                ['bytes32', 'bytes32', 'uint48', 'bytes32'],
                 [testCommitment, testHash, t2, pid]
             );
             
@@ -516,6 +516,11 @@ describe("ThirdProtocol", function () {
             // Log current timestamp
             const finalTimestamp = await thirdProtocol.getTimestamp();
             console.log(`Current timestamp at end of test: ${finalTimestamp.toString()}`);
+            
+            // Compare gas usage 
+            console.log("\nGas usage comparison:");
+            console.log(`Optimized TriggerDispute function gas: ${triggerReceipt?.gasUsed.toString()}`);
+            console.log(`Optimized SendOp function gas: ${sendOpReceipt?.gasUsed.toString()}`);
         });
     });
     
