@@ -13,7 +13,6 @@ describe("SixthProtocol", function () {
     let addr3: SignerWithAddress;
 
     // Common test values
-    let testHash: string;
     let testTao: string;
     // Default pledge amount
     const pledgeAmount = ethers.parseEther("0.1"); // 0.1 ETH
@@ -27,7 +26,6 @@ describe("SixthProtocol", function () {
         sixthProtocol = await SixthProtocolFactory.deploy();
         
         // Generate test values
-        testHash = ethers.keccak256(ethers.toUtf8Bytes("test data"));
         testTao = ethers.keccak256(ethers.toUtf8Bytes("test tao"));
     });
 
@@ -65,7 +63,7 @@ describe("SixthProtocol", function () {
             
             // Call the SetTuple function with pledge
             const tx = await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                t1, t2, testTao, bob.address, { value: pledgeAmount }
             );
             
             const receipt = await tx.wait();
@@ -75,7 +73,7 @@ describe("SixthProtocol", function () {
             const txFee = receipt ? receipt.gasUsed * receipt.gasPrice : BigInt(0);
             
             // Calculate the pid that will be used
-            const pid = await createPidForTest(alice.address, bob.address, testHash);
+            const pid = await createPidForTest(alice.address, bob.address, testTao);
             
             // Get the entry to verify it was created
             const entry = await sixthProtocol.GetEntry(pid);
@@ -113,7 +111,7 @@ describe("SixthProtocol", function () {
             
             // Call without sending ETH should fail
             await expect(
-                sixthProtocol.connect(alice).SetTuple(t1, t2, testTao, bob.address, testHash)
+                sixthProtocol.connect(alice).SetTuple(t1, t2, testTao, bob.address)
             ).to.be.revertedWithCustomError(sixthProtocol, "PledgeAmountTooLow");
         });
         
@@ -128,7 +126,7 @@ describe("SixthProtocol", function () {
             // Call should fail with t2 in the past
             await expect(
                 sixthProtocol.connect(alice).SetTuple(
-                    t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                    t1, t2, testTao, bob.address, { value: pledgeAmount }
                 )
             ).to.be.revertedWithCustomError(sixthProtocol, "T2MustBeInFuture");
         });
@@ -144,7 +142,7 @@ describe("SixthProtocol", function () {
             // Call should fail with t2 before t1
             await expect(
                 sixthProtocol.connect(alice).SetTuple(
-                    t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                    t1, t2, testTao, bob.address, { value: pledgeAmount }
                 )
             ).to.be.revertedWithCustomError(sixthProtocol, "T2MustBeAfterT1");
         });
@@ -160,13 +158,13 @@ describe("SixthProtocol", function () {
             
             // First call should succeed
             await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                t1, t2, testTao, bob.address, { value: pledgeAmount }
             );
             
             // Second call with the same parameters should fail
             await expect(
                 sixthProtocol.connect(alice).SetTuple(
-                    t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                    t1, t2, testTao, bob.address, { value: pledgeAmount }
                 )
             ).to.be.revertedWithCustomError(sixthProtocol, "EntryAlreadyExists");
         });
@@ -189,11 +187,11 @@ describe("SixthProtocol", function () {
             
             // Create entries with different pledge amounts
             await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, hash1, { value: smallPledge }
+                t1, t2, hash1, bob.address, { value: smallPledge }
             );
             
             await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, hash2, { value: largePledge }
+                t1, t2, hash2, bob.address, { value: largePledge }
             );
             
             // Calculate pids
@@ -227,11 +225,11 @@ describe("SixthProtocol", function () {
             
             // Create an entry with pledge
             await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                t1, t2, testTao, bob.address, { value: pledgeAmount }
             );
             
             // Calculate pid
-            pid = await createPidForTest(alice.address, bob.address, testHash);
+            pid = await createPidForTest(alice.address, bob.address, testTao);
         });
         
         it("should allow setting a signature and release pledge to sender", async function () {
@@ -393,12 +391,12 @@ describe("SixthProtocol", function () {
             const t2 = uint48(currentTimestamp + BigInt(7200));
             
             // Calculate pid
-            const pid = await createPidForTest(alice.address, bob.address, testHash);
+            const pid = await createPidForTest(alice.address, bob.address, testTao);
             
             // Check for event emission
             await expect(
                 sixthProtocol.connect(alice).SetTuple(
-                    t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                    t1, t2, testTao, bob.address, { value: pledgeAmount }
                 )
             ).to.emit(sixthProtocol, "TupleCreated")
               .withArgs(pid, alice.address, bob.address, pledgeAmount);
@@ -415,11 +413,11 @@ describe("SixthProtocol", function () {
             
             // Create tuple with pledge
             await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                t1, t2, testTao, bob.address, { value: pledgeAmount }
             );
             
             // Calculate pid
-            const pid = await createPidForTest(alice.address, bob.address, testHash);
+            const pid = await createPidForTest(alice.address, bob.address, testTao);
             
             // Create signature
             const dataHash = ethers.solidityPackedKeccak256(
@@ -454,11 +452,11 @@ describe("SixthProtocol", function () {
             
             // Create an entry with pledge
             await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                t1, t2, testTao, bob.address, { value: pledgeAmount }
             );
             
             // Calculate pid
-            pid = await createPidForTest(alice.address, bob.address, testHash);
+            pid = await createPidForTest(alice.address, bob.address, testTao);
             
             // Create and set the signature
             const dataHash = ethers.solidityPackedKeccak256(
@@ -511,7 +509,7 @@ describe("SixthProtocol", function () {
             
             // Create tuple with pledge
             await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                t1, t2, testTao, bob.address, { value: pledgeAmount }
             );
             
             // Balance should be equal to pledge
@@ -522,14 +520,14 @@ describe("SixthProtocol", function () {
             const pledgeAmount2 = ethers.parseEther("0.2");
             
             await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, hash2, { value: pledgeAmount2 }
+                t1, t2, hash2, bob.address, { value: pledgeAmount2 }
             );
             
             // Balance should be sum of both pledges
             expect(await sixthProtocol.getContractBalance()).to.equal(pledgeAmount + pledgeAmount2);
             
             // Release first pledge
-            const pid1 = await createPidForTest(alice.address, bob.address, testHash);
+            const pid1 = await createPidForTest(alice.address, bob.address, testTao);
             const dataHash1 = ethers.solidityPackedKeccak256(
                 ['address', 'uint48', 'uint48', 'bytes32', 'bytes32'],
                 [alice.address, t1, t2, testTao, pid1]
@@ -560,13 +558,13 @@ describe("SixthProtocol", function () {
             
             // Measure SetTuple gas
             const setTupleTx = await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
+                t1, t2, testTao, bob.address, { value: pledgeAmount }
             );
             const setTupleReceipt = await setTupleTx.wait();
             console.log(`Gas used for SetTuple with pledge in workflow: ${setTupleReceipt?.gasUsed.toString()}`);
             
             // Calculate pid
-            const pid = await createPidForTest(alice.address, bob.address, testHash);
+            const pid = await createPidForTest(alice.address, bob.address, testTao);
             
             // Create and set the signature
             const dataHash = ethers.solidityPackedKeccak256(
@@ -604,13 +602,13 @@ describe("SixthProtocol", function () {
             
             // Small pledge
             const smallTx = await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, hash1, { value: smallPledge }
+                t1, t2, hash1, bob.address, { value: smallPledge }
             );
             const smallReceipt = await smallTx.wait();
             
             // Large pledge
             const largeTx = await sixthProtocol.connect(alice).SetTuple(
-                t1, t2, testTao, bob.address, hash2, { value: largePledge }
+                t1, t2, hash2, bob.address, { value: largePledge }
             );
             const largeReceipt = await largeTx.wait();
             

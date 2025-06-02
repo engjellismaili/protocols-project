@@ -44,12 +44,12 @@ contract SixthProtocol {
         return data.toEthSignedMessageHash().recover(signature) == signer;
     }
 
-    function SetTuple(uint48 t1, uint48 t2, bytes32 tao, address bob, bytes32 h) external payable {
+    function SetTuple(uint48 t1, uint48 t2, bytes32 tao, address bob) external payable {
         if (t2 <= block.timestamp) revert T2MustBeInFuture();
         if (t2 <= t1) revert T2MustBeAfterT1();
         if (msg.value == 0) revert PledgeAmountTooLow();
 
-        bytes32 pid = _pid(msg.sender, bob, h);
+        bytes32 pid = _pid(msg.sender, bob, tao);
         Entry storage entry = _entries[pid];
 
         if (entry.sender != address(0)) revert EntryAlreadyExists();
