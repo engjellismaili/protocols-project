@@ -114,7 +114,7 @@ describe("SixthProtocol", function () {
             // Call without sending ETH should fail
             await expect(
                 sixthProtocol.connect(alice).SetTuple(t1, t2, testTao, bob.address, testHash)
-            ).to.be.revertedWith("Pledge amount must be greater than 0");
+            ).to.be.revertedWithCustomError(sixthProtocol, "PledgeAmountTooLow");
         });
         
         it("should reject when t2 is in the past", async function () {
@@ -130,7 +130,7 @@ describe("SixthProtocol", function () {
                 sixthProtocol.connect(alice).SetTuple(
                     t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
                 )
-            ).to.be.revertedWith("t2 must be in the future");
+            ).to.be.revertedWithCustomError(sixthProtocol, "T2MustBeInFuture");
         });
         
         it("should reject when t2 is before t1", async function () {
@@ -146,7 +146,7 @@ describe("SixthProtocol", function () {
                 sixthProtocol.connect(alice).SetTuple(
                     t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
                 )
-            ).to.be.revertedWith("t2 must be after t1");
+            ).to.be.revertedWithCustomError(sixthProtocol, "T2MustBeAfterT1");
         });
         
         it("should reject duplicate entries", async function () {
@@ -168,7 +168,7 @@ describe("SixthProtocol", function () {
                 sixthProtocol.connect(alice).SetTuple(
                     t1, t2, testTao, bob.address, testHash, { value: pledgeAmount }
                 )
-            ).to.be.revertedWith("Entry already exists");
+            ).to.be.revertedWithCustomError(sixthProtocol, "EntryAlreadyExists");
         });
         
         it("should accept different pledge amounts", async function() {
@@ -274,13 +274,44 @@ describe("SixthProtocol", function () {
             expect(contractBalanceBefore - contractBalanceAfter).to.equal(pledgeAmount);
         });
         
+        it("should release pledge to sender after validating signature", async function() {
+            // Advance time to after t2 should not matter since we're validating with signature
+            await time.increaseTo(t2 + 100);
+            
+            // Create the data hash that Bob will sign
+            const dataHash = ethers.solidityPackedKeccak256(
+                ['address', 'uint48', 'uint48', 'bytes32', 'bytes32'],
+                [alice.address, t1, t2, testTao, pid]
+            );
+            
+            // Bob signs the data hash
+            const signature = await bob.signMessage(ethers.getBytes(dataHash));
+            
+            // Get balances before signature
+            const aliceBalanceBefore = await ethers.provider.getBalance(alice.address);
+            
+            // Alice sets the signature - this should release the pledge back to Alice
+            const tx = await sixthProtocol.connect(alice).SetSignature(signature, pid);
+            const receipt = await tx.wait();
+            const txFee = receipt ? receipt.gasUsed * receipt.gasPrice : BigInt(0);
+            
+            // Get balances after signature
+            const aliceBalanceAfter = await ethers.provider.getBalance(alice.address);
+            
+            // Verify Alice got her pledge back (minus gas costs)
+            expect(aliceBalanceAfter).to.be.closeTo(
+                aliceBalanceBefore + pledgeAmount - txFee,
+                ethers.parseEther("0.0001") // Allow small rounding difference
+            );
+        });
+        
         it("should reject setting signature for non-existent entry", async function () {
             const fakePid = ethers.keccak256(ethers.toUtf8Bytes("fake pid"));
             const signature = "0x123456"; // Dummy signature
             
             await expect(
                 sixthProtocol.connect(alice).SetSignature(signature, fakePid)
-            ).to.be.revertedWith("Entry does not exist");
+            ).to.be.revertedWithCustomError(sixthProtocol, "EntryDoesNotExist");
         });
         
         it("should reject setting signature by non-sender", async function () {
@@ -296,7 +327,7 @@ describe("SixthProtocol", function () {
             // Someone else tries to set the signature
             await expect(
                 sixthProtocol.connect(addr3).SetSignature(signature, pid)
-            ).to.be.revertedWith("Only the sender can set the signature");
+            ).to.be.revertedWithCustomError(sixthProtocol, "OnlySenderCanSetSignature");
         });
         
         it("should reject invalid signature", async function () {
@@ -312,7 +343,7 @@ describe("SixthProtocol", function () {
             // Try to set the invalid signature
             await expect(
                 sixthProtocol.connect(alice).SetSignature(invalidSignature, pid)
-            ).to.be.revertedWith("Invalid signature");
+            ).to.be.revertedWithCustomError(sixthProtocol, "InvalidSignature");
         });
         
         it("should reject signature by someone else than the receiver", async function () {
@@ -328,7 +359,7 @@ describe("SixthProtocol", function () {
             // Try to set the wrong signature
             await expect(
                 sixthProtocol.connect(alice).SetSignature(wrongSignature, pid)
-            ).to.be.revertedWith("Invalid signature");
+            ).to.be.revertedWithCustomError(sixthProtocol, "InvalidSignature");
         });
         
         it("should reject setting signature twice and claiming pledge twice", async function() {
@@ -347,7 +378,7 @@ describe("SixthProtocol", function () {
             // Second attempt should fail
             await expect(
                 sixthProtocol.connect(alice).SetSignature(signature, pid)
-            ).to.be.revertedWith("Pledge already released");
+            ).to.be.revertedWithCustomError(sixthProtocol, "PledgeAlreadyReleased");
         });
     });
 
@@ -461,7 +492,7 @@ describe("SixthProtocol", function () {
             
             await expect(
                 sixthProtocol.GetEntry(fakePid)
-            ).to.be.revertedWith("Entry does not exist");
+            ).to.be.revertedWithCustomError(sixthProtocol, "EntryDoesNotExist");
         });
     });
 
