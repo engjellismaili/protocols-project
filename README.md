@@ -3,8 +3,13 @@ The gas cost report can be found in the /test/ folder for each protocol.
 Commands to run when creating a new hardhat project (no need for directory already present in the repo):
 
 ```shell
+sudo apt update
+sudo apt install nodejs
+
 # Node ≥ 18 is recommended
 node -v
+
+sudo apt install npm
 
 # install (or update) Yarn / npm as you prefer
 npm install --global npm
