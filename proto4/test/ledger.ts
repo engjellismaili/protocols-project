@@ -4,7 +4,7 @@ import { Ledger } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 
-describe("SeventhProtocol", function () {
+describe("Ledger", function () {
     let ledger: Ledger;
     let owner: SignerWithAddress;
     let addr1: SignerWithAddress;
@@ -26,7 +26,27 @@ describe("SeventhProtocol", function () {
         
         // Generate test values
         testKey = ethers.keccak256(ethers.toUtf8Bytes("test key"));
-        testSig = await addr1.signMessage(ethers.getBytes(testKey)); // Sample signature
+        
+        // Create timer value - using contract timestamp like in thirdProtocol.ts
+        const currentTimestamp = await ledger.getTimestamp();
+        const futureTime = Number(currentTimestamp + BigInt(3600)); // 1 hour in the future
+        
+        // Create signature over hash h (testKey) and timer t (futureTime)
+        // Need to hash them together first
+        const dataToSign = ethers.solidityPacked(
+            ['bytes32', 'uint48'],
+            [testKey, futureTime]
+        );
+        const messageHash = ethers.keccak256(dataToSign);
+        
+        // Sign the hash
+        testSig = await addr2.signMessage(ethers.getBytes(messageHash));
+        
+        // Verify signature is 65 bytes
+        if (ethers.dataLength(testSig) !== 65) {
+            console.warn(`Warning: Signature length is ${ethers.dataLength(testSig)} bytes, not 65 bytes`);
+        }
+        
         testPid = ethers.keccak256(ethers.toUtf8Bytes("test pid"));
     });
 
@@ -35,14 +55,40 @@ describe("SeventhProtocol", function () {
             expect(await ledger.getAddress()).to.be.properAddress;
         });
     });
+    
+    describe("getTimestamp", function() {
+        it("should return the current blockchain timestamp", async function() {
+            const contractTimestamp = await ledger.getTimestamp();
+            const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+            
+            // Allow small variance (blocktime can be different than JS time)
+            expect(contractTimestamp).to.be.closeTo(currentTimestamp, 5n);
+            console.log(`Current contract timestamp: ${contractTimestamp}`);
+        });
+        
+        it("should estimate gas cost for getTimestamp", async function() {
+            const gasEstimate = await ledger.getTimestamp.estimateGas();
+            console.log(`Gas estimate for getTimestamp: ${gasEstimate}`);
+            expect(gasEstimate).to.be.lt(30000); // Should be very cheap
+        });
+    });
 
     describe("SetTuple", function () {
         it("should allow setting a tuple with future timestamp", async function () {
-            const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
-            const futureTime = uint48(currentTimestamp + BigInt(3600)); // 1 hour in the future
+            // Create new timestamp and signature for this test - using BigInt like in thirdProtocol.ts
+            const contractTimestamp = await ledger.getTimestamp();
+            const futureTime = Number(contractTimestamp + BigInt(3600)); // 1 hour in the future
+            
+            // Create proper signature based on hash and time
+            const dataToSign = ethers.solidityPacked(
+                ['bytes32', 'uint48'],
+                [testKey, futureTime]
+            );
+            const messageHash = ethers.keccak256(dataToSign);
+            const signature = await addr2.signMessage(ethers.getBytes(messageHash));
             
             const tx = await ledger.connect(addr1).SetTuple(
-                testSig, futureTime, testKey, testPid
+                signature, futureTime, testKey, testPid
             );
             
             const receipt = await tx.wait();
@@ -50,58 +96,97 @@ describe("SeventhProtocol", function () {
             
             // Verify the tuple was stored correctly
             const [sig, t, k] = await ledger.GetTuple(testPid);
-            expect(sig).to.equal(testSig);
+            expect(sig).to.equal(signature);
             expect(t).to.equal(futureTime);
             expect(k).to.equal(testKey);
         });
         
         it("should reject setting tuple with past timestamp", async function () {
-            const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
-            const pastTime = uint48(currentTimestamp - BigInt(3600)); // 1 hour in the past
+            const contractTimestamp = await ledger.getTimestamp();
+            const pastTime = Number(contractTimestamp - BigInt(3600)); // 1 hour in the past
+            
+            // Create signature for this test
+            const dataToSign = ethers.solidityPacked(
+                ['bytes32', 'uint48'],
+                [testKey, pastTime]
+            );
+            const messageHash = ethers.keccak256(dataToSign);
+            const signature = await addr2.signMessage(ethers.getBytes(messageHash));
             
             await expect(
-                ledger.connect(addr1).SetTuple(testSig, pastTime, testKey, testPid)
+                ledger.connect(addr1).SetTuple(signature, pastTime, testKey, testPid)
             ).to.be.revertedWithCustomError(ledger, "TimestampMustBeFuture");
         });
         
         it("should reject setting tuple with current timestamp", async function () {
-            const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
+            const contractTimestamp = await ledger.getTimestamp();
+            const currentTime = Number(contractTimestamp);
+            
+            // Create signature for this test
+            const dataToSign = ethers.solidityPacked(
+                ['bytes32', 'uint48'],
+                [testKey, currentTime]
+            );
+            const messageHash = ethers.keccak256(dataToSign);
+            const signature = await addr2.signMessage(ethers.getBytes(messageHash));
             
             await expect(
-                ledger.connect(addr1).SetTuple(testSig, uint48(currentTimestamp), testKey, testPid)
+                ledger.connect(addr1).SetTuple(signature, currentTime, testKey, testPid)
             ).to.be.revertedWithCustomError(ledger, "TimestampMustBeFuture");
         });
         
         it("should reject setting duplicate entries", async function () {
-            const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
-            const futureTime = uint48(currentTimestamp + BigInt(3600)); // 1 hour in the future
+            const contractTimestamp = await ledger.getTimestamp();
+            const futureTime = Number(contractTimestamp + BigInt(3600)); // 1 hour in the future
+            
+            // Create signature
+            const dataToSign = ethers.solidityPacked(
+                ['bytes32', 'uint48'],
+                [testKey, futureTime]
+            );
+            const messageHash = ethers.keccak256(dataToSign);
+            const signature = await addr2.signMessage(ethers.getBytes(messageHash));
             
             // First call should succeed
-            await ledger.connect(addr1).SetTuple(testSig, futureTime, testKey, testPid);
+            await ledger.connect(addr1).SetTuple(signature, futureTime, testKey, testPid);
             
             // Second call should fail
             await expect(
-                ledger.connect(addr1).SetTuple(testSig, futureTime, testKey, testPid)
+                ledger.connect(addr1).SetTuple(signature, futureTime, testKey, testPid)
             ).to.be.revertedWithCustomError(ledger, "EntryAlreadyExists");
         });
         
         it("should allow different users to set different tuples", async function () {
-            const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
-            const futureTime = uint48(currentTimestamp + BigInt(3600)); // 1 hour in the future
+            const contractTimestamp = await ledger.getTimestamp();
+            const futureTime = Number(contractTimestamp + BigInt(3600)); // 1 hour in the future
             
             const testPid2 = ethers.keccak256(ethers.toUtf8Bytes("test pid 2"));
             const testKey2 = ethers.keccak256(ethers.toUtf8Bytes("test key 2"));
-            const testSig2 = await addr2.signMessage(ethers.getBytes(testKey2));
+            
+            // Create signatures for both users
+            const dataToSign1 = ethers.solidityPacked(
+                ['bytes32', 'uint48'],
+                [testKey, futureTime]
+            );
+            const messageHash1 = ethers.keccak256(dataToSign1);
+            const signature1 = await addr1.signMessage(ethers.getBytes(messageHash1));
+            
+            const dataToSign2 = ethers.solidityPacked(
+                ['bytes32', 'uint48'],
+                [testKey2, futureTime]
+            );
+            const messageHash2 = ethers.keccak256(dataToSign2);
+            const signature2 = await addr2.signMessage(ethers.getBytes(messageHash2));
             
             // First user sets their tuple
             const tx1 = await ledger.connect(addr1).SetTuple(
-                testSig, futureTime, testKey, testPid
+                signature1, futureTime, testKey, testPid
             );
             const receipt1 = await tx1.wait();
             
             // Second user sets their tuple
             const tx2 = await ledger.connect(addr2).SetTuple(
-                testSig2, futureTime, testKey2, testPid2
+                signature2, futureTime, testKey2, testPid2
             );
             const receipt2 = await tx2.wait();
             
@@ -110,64 +195,36 @@ describe("SeventhProtocol", function () {
             
             // Verify both tuples
             const [sig1, t1, k1] = await ledger.GetTuple(testPid);
-            expect(sig1).to.equal(testSig);
+            expect(sig1).to.equal(signature1);
             expect(t1).to.equal(futureTime);
             expect(k1).to.equal(testKey);
             
             const [sig2, t2, k2] = await ledger.GetTuple(testPid2);
-            expect(sig2).to.equal(testSig2);
+            expect(sig2).to.equal(signature2);
             expect(t2).to.equal(futureTime);
             expect(k2).to.equal(testKey2);
-        });
-        
-        it("should measure gas used for SetTuple with different signature lengths", async function () {
-            const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
-            const futureTime = uint48(currentTimestamp + BigInt(3600)); // 1 hour in the future
-            
-            // Short signature
-            const shortKey = ethers.keccak256(ethers.toUtf8Bytes("short"));
-            const shortSig = await addr1.signMessage(ethers.getBytes(shortKey));
-            const shortPid = ethers.keccak256(ethers.toUtf8Bytes("short pid"));
-            
-            // Long signature (simulate a longer signature by concatenating)
-            const longData = ethers.concat([
-                ethers.toUtf8Bytes("long signature data that is much longer"),
-                ethers.toUtf8Bytes("to see how gas costs increase with signature size"),
-                ethers.toUtf8Bytes("because signature storage is expensive in Ethereum")
-            ]);
-            const longKey = ethers.keccak256(longData);
-            const longSig = await addr1.signMessage(ethers.getBytes(longKey));
-            const longPid = ethers.keccak256(ethers.toUtf8Bytes("long pid"));
-            
-            // Set tuple with short signature
-            const tx1 = await ledger.connect(addr1).SetTuple(
-                shortSig, futureTime, shortKey, shortPid
-            );
-            const receipt1 = await tx1.wait();
-            
-            // Set tuple with long signature
-            const tx2 = await ledger.connect(addr1).SetTuple(
-                longSig, futureTime, longKey, longPid
-            );
-            const receipt2 = await tx2.wait();
-            
-            console.log(`Gas used for SetTuple with short signature (${shortSig.length} bytes): ${receipt1?.gasUsed.toString()}`);
-            console.log(`Gas used for SetTuple with long signature (${longSig.length} bytes): ${receipt2?.gasUsed.toString()}`);
-            console.log(`Gas difference: ${(receipt2!.gasUsed - receipt1!.gasUsed).toString()}`);
         });
     });
 
     describe("GetTuple", function () {
         it("should retrieve a previously set tuple", async function () {
-            const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
-            const futureTime = uint48(currentTimestamp + BigInt(3600)); // 1 hour in the future
+            const contractTimestamp = await ledger.getTimestamp();
+            const futureTime = Number(contractTimestamp + BigInt(3600)); // 1 hour in the future
+            
+            // Create signature
+            const dataToSign = ethers.solidityPacked(
+                ['bytes32', 'uint48'],
+                [testKey, futureTime]
+            );
+            const messageHash = ethers.keccak256(dataToSign);
+            const signature = await addr2.signMessage(ethers.getBytes(messageHash));
             
             // Set the tuple
-            await ledger.connect(addr1).SetTuple(testSig, futureTime, testKey, testPid);
+            await ledger.connect(addr1).SetTuple(signature, futureTime, testKey, testPid);
             
             // Get the tuple and verify
             const [sig, t, k] = await ledger.GetTuple(testPid);
-            expect(sig).to.equal(testSig);
+            expect(sig).to.equal(signature);
             expect(t).to.equal(futureTime);
             expect(k).to.equal(testKey);
             
@@ -187,57 +244,68 @@ describe("SeventhProtocol", function () {
     });
 
     describe("Gas usage comparison", function() {
-        it("should measure gas usage with different sizes of data", async function() {
+        it("should measure gas usage with different sizes of signatures", async function() {
             // Setup for gas measurement
-            const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
-            const futureTime = uint48(currentTimestamp + BigInt(3600)); // 1 hour in the future
+            const contractTimestamp = await ledger.getTimestamp();
+            const futureTime = Number(contractTimestamp + BigInt(3600)); // 1 hour in the future
             
-            // Different sized keys (these will all produce the same length keccak256 hash)
+            // Different keys to sign
             const smallKey = ethers.keccak256(ethers.toUtf8Bytes("small"));
-            const mediumKey = ethers.keccak256(ethers.toUtf8Bytes("medium sized key for testing"));
-            const largeKey = ethers.keccak256(ethers.toUtf8Bytes("large key with lots of data to see if the key size affects gas consumption in any way"));
+            const mediumKey = ethers.keccak256(ethers.toUtf8Bytes("medium"));
+            const largeKey = ethers.keccak256(ethers.toUtf8Bytes("large"));
             
             // Different PIDs
             const smallPid = ethers.keccak256(ethers.toUtf8Bytes("small-pid"));
             const mediumPid = ethers.keccak256(ethers.toUtf8Bytes("medium-pid"));
             const largePid = ethers.keccak256(ethers.toUtf8Bytes("large-pid"));
             
-            // Different signatures
-            const smallSig = await addr1.signMessage(ethers.getBytes(smallKey));
-            const mediumSig = await addr1.signMessage(ethers.getBytes(mediumKey));
-            const largeSig = await addr1.signMessage(ethers.getBytes(largeKey));
+            // Create signatures
+            const smallData = ethers.solidityPacked(['bytes32', 'uint48'], [smallKey, futureTime]);
+            const mediumData = ethers.solidityPacked(['bytes32', 'uint48'], [mediumKey, futureTime]);
+            const largeData = ethers.solidityPacked(['bytes32', 'uint48'], [largeKey, futureTime]);
             
-            // Set tuples with different sized data and measure gas
+            const smallHash = ethers.keccak256(smallData);
+            const mediumHash = ethers.keccak256(mediumData);
+            const largeHash = ethers.keccak256(largeData);
+            
+            const smallSig = await addr1.signMessage(ethers.getBytes(smallHash));
+            const mediumSig = await addr2.signMessage(ethers.getBytes(mediumHash));
+            const largeSig = await addr3.signMessage(ethers.getBytes(largeHash));
+            
+            // All signatures should be the same size (65 bytes) because they're ECDSA signatures
+            console.log(`Small signature length: ${ethers.dataLength(smallSig)}`);
+            console.log(`Medium signature length: ${ethers.dataLength(mediumSig)}`);
+            console.log(`Large signature length: ${ethers.dataLength(largeSig)}`);
+            
+            // Set tuples with different signatures and measure gas
             const tx1 = await ledger.connect(addr1).SetTuple(
                 smallSig, futureTime, smallKey, smallPid
             );
             const receipt1 = await tx1.wait();
             
-            const tx2 = await ledger.connect(addr1).SetTuple(
+            const tx2 = await ledger.connect(addr2).SetTuple(
                 mediumSig, futureTime, mediumKey, mediumPid
             );
             const receipt2 = await tx2.wait();
             
-            const tx3 = await ledger.connect(addr1).SetTuple(
+            const tx3 = await ledger.connect(addr3).SetTuple(
                 largeSig, futureTime, largeKey, largePid
             );
             const receipt3 = await tx3.wait();
             
-            // Log gas usage
-            console.log("\nGas usage for different sized signatures:");
-            console.log(`Small signature (${smallSig.length} bytes): ${receipt1?.gasUsed.toString()} gas`);
-            console.log(`Medium signature (${mediumSig.length} bytes): ${receipt2?.gasUsed.toString()} gas`);
-            console.log(`Large signature (${largeSig.length} bytes): ${receipt3?.gasUsed.toString()} gas`);
+            // Log gas usage (should be similar since signatures are fixed size)
+            console.log("\nGas usage for different signers:");
+            console.log(`Signer 1: ${receipt1?.gasUsed.toString()} gas`);
+            console.log(`Signer 2: ${receipt2?.gasUsed.toString()} gas`);
+            console.log(`Signer 3: ${receipt3?.gasUsed.toString()} gas`);
             
-            // Gas per byte calculation
-            const gasPerByteSmall = receipt1!.gasUsed / BigInt(smallSig.length - 2); // -2 for "0x" prefix
-            const gasPerByteMedium = receipt2!.gasUsed / BigInt(mediumSig.length - 2);
-            const gasPerByteLarge = receipt3!.gasUsed / BigInt(largeSig.length - 2);
-            
-            console.log("\nGas per byte of signature data:");
-            console.log(`Small signature: ${gasPerByteSmall.toString()} gas per byte`);
-            console.log(`Medium signature: ${gasPerByteMedium.toString()} gas per byte`);
-            console.log(`Large signature: ${gasPerByteLarge.toString()} gas per byte`);
+            // Gas comparison for fixed-size signatures
+            console.log("\nGas comparison for fixed-size signatures:");
+            console.log(`Max difference: ${Math.max(
+                Number(receipt1!.gasUsed - receipt2!.gasUsed),
+                Number(receipt2!.gasUsed - receipt3!.gasUsed),
+                Number(receipt3!.gasUsed - receipt1!.gasUsed)
+            )}`);
         });
         
         it("should provide a complete gas usage report", async function() {
@@ -248,12 +316,17 @@ describe("SeventhProtocol", function () {
             console.log(`Estimated gas for deployment: ${deployEstimate.toString()}`);
             
             // Setup test data
-            const currentTimestamp = BigInt(Math.floor(Date.now() / 1000));
-            const futureTime = uint48(currentTimestamp + BigInt(3600)); // 1 hour in the future
+            const contractTimestamp = await ledger.getTimestamp();
+            const futureTime = Number(contractTimestamp + BigInt(3600)); // 1 hour in the future
+            
+            // Create signature
+            const dataToSign = ethers.solidityPacked(['bytes32', 'uint48'], [testKey, futureTime]);
+            const messageHash = ethers.keccak256(dataToSign);
+            const signature = await addr2.signMessage(ethers.getBytes(messageHash));
             
             // SetTuple gas measurement
             const setTx = await ledger.connect(addr1).SetTuple(
-                testSig, futureTime, testKey, testPid
+                signature, futureTime, testKey, testPid
             );
             const setReceipt = await setTx.wait();
             console.log(`Gas used for SetTuple: ${setReceipt?.gasUsed.toString()}`);
@@ -261,6 +334,10 @@ describe("SeventhProtocol", function () {
             // GetTuple gas estimate
             const getTupleEstimate = await ledger.GetTuple.estimateGas(testPid);
             console.log(`Gas estimate for GetTuple: ${getTupleEstimate.toString()}`);
+            
+            // getTimestamp gas estimate
+            const getTimestampEstimate = await ledger.getTimestamp.estimateGas();
+            console.log(`Gas estimate for getTimestamp: ${getTimestampEstimate.toString()}`);
             
             // Compare with worst case scenario (empty contract vs. filled storage)
             const emptyContractFactory = await ethers.getContractFactory("Ledger");
@@ -270,7 +347,10 @@ describe("SeventhProtocol", function () {
             for (let i = 0; i < 10; i++) {
                 const pid = ethers.keccak256(ethers.toUtf8Bytes(`pid-${i}`));
                 const key = ethers.keccak256(ethers.toUtf8Bytes(`key-${i}`));
-                const sig = await addr1.signMessage(ethers.getBytes(key));
+                
+                const dataToSign = ethers.solidityPacked(['bytes32', 'uint48'], [key, futureTime]);
+                const messageHash = ethers.keccak256(dataToSign);
+                const sig = await addr1.signMessage(ethers.getBytes(messageHash));
                 
                 await ledger.connect(addr1).SetTuple(
                     sig, futureTime, key, pid
@@ -280,7 +360,10 @@ describe("SeventhProtocol", function () {
             // Now measure gas on the contract with filled storage
             const newPid = ethers.keccak256(ethers.toUtf8Bytes("new-pid"));
             const newKey = ethers.keccak256(ethers.toUtf8Bytes("new-key"));
-            const newSig = await addr1.signMessage(ethers.getBytes(newKey));
+            
+            const newDataToSign = ethers.solidityPacked(['bytes32', 'uint48'], [newKey, futureTime]);
+            const newMessageHash = ethers.keccak256(newDataToSign);
+            const newSig = await addr1.signMessage(ethers.getBytes(newMessageHash));
             
             const filledStorageTx = await ledger.connect(addr1).SetTuple(
                 newSig, futureTime, newKey, newPid
@@ -297,16 +380,21 @@ describe("SeventhProtocol", function () {
             console.log(`Gas for SetTuple on empty contract: ${emptyStorageReceipt?.gasUsed.toString()}`);
             console.log(`Gas for SetTuple on contract with 10 entries: ${filledStorageReceipt?.gasUsed.toString()}`);
             console.log(`Difference: ${((emptyStorageReceipt?.gasUsed || BigInt(0)) - (filledStorageReceipt?.gasUsed || BigInt(0))).toString()}`);
+            
+            // Log current timestamp at end of test (like in thirdProtocol.ts)
+            const finalTimestamp = await ledger.getTimestamp();
+            console.log(`Current timestamp at end of test: ${finalTimestamp.toString()}`);
+            
+            // Gas usage table
+            console.log("\nGas usage summary table:");
+            console.log("+-----------------------+------------------+");
+            console.log("| Operation             | Gas Used         |");
+            console.log("+-----------------------+------------------+");
+            console.log(`| Deployment            | ${deployEstimate.toString().padStart(16)} |`);
+            console.log(`| SetTuple              | ${setReceipt?.gasUsed.toString().padStart(16)} |`);
+            console.log(`| GetTuple (estimate)   | ${getTupleEstimate.toString().padStart(16)} |`);
+            console.log(`| getTimestamp          | ${getTimestampEstimate.toString().padStart(16)} |`);
+            console.log("+-----------------------+------------------+");
         });
     });
-    
-    // Helper function to safely convert to uint48
-    function uint48(value: bigint): number {
-        // Ensure value fits in uint48 (2^48 - 1)
-        const MAX_UINT48 = BigInt(2)**BigInt(48) - BigInt(1);
-        if (value > MAX_UINT48) {
-            throw new Error(`Value ${value} exceeds maximum uint48 (${MAX_UINT48})`);
-        }
-        return Number(value);
-    }
 });

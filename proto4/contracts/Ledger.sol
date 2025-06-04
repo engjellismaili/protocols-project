@@ -8,7 +8,7 @@ contract Ledger {
     error EntryDoesNotExist();
     
     struct Entry {
-        bytes sig;
+        bytes sig;  // Fixed size for ECDSA signatures (65 bytes)
         uint48 t;
         bytes32 k;
     }
@@ -32,5 +32,9 @@ contract Ledger {
         if (entry.t == 0) revert EntryDoesNotExist();
 
         return (entry.sig, entry.t, entry.k);
+    }
+
+    function getTimestamp() external view returns (uint48) {
+        return uint48(block.timestamp);
     }
 }
