@@ -13,17 +13,17 @@ node -v
 
 sudo apt install npm
 
-# install (or update) Yarn / npm as you prefer
+# update npm
 npm install --global npm
 
 npm init --yes
-npm install --save-dev hardhat          # core
+npm install --save-dev hardhat          
 ```
 
 Then, in a new directory, run (the provided /proto directories were already initialized with hardhat): 
 
 ```shell
-npx hardhat init                        # choose “typescript” template
+npx hardhat init                        
 ```
 
 The directory should be like :
