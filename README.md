@@ -2,7 +2,7 @@ The following commands were run on a Ubuntu 24.04 system, depending on your OS a
 
 The gas cost report can be found in the /test/ folder for each protocol.
 
-Commands to run when creating a new hardhat project (no need for directories already present in the repo):
+Before creating a hardhat project, you must download node, npm and hardhat
 
 ```shell
 sudo apt update
@@ -18,6 +18,11 @@ npm install --global npm
 
 npm init --yes
 npm install --save-dev hardhat          # core
+```
+
+Then, in a new directory, run (the provided /proto directories were already initialized with hardhat): 
+
+```shell
 npx hardhat init                        # choose “typescript” template
 ```
 
