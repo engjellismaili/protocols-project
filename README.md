@@ -2,7 +2,7 @@ The following commands were run on a Ubuntu 24.04 system, depending on your OS a
 
 The gas cost report can be found in the /test/ folder for each protocol.
 
-Commands to run when creating a new hardhat project (no need for directory already present in the repo):
+Commands to run when creating a new hardhat project (no need for directories already present in the repo):
 
 ```shell
 sudo apt update
