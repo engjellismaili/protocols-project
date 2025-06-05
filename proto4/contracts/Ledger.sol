@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;   // latest stable (May 2025)
+pragma solidity ^0.8.26;
 
 contract Ledger {
-    // Custom errors for gas savings
     error EntryAlreadyExists();
     error TimestampMustBeFuture();
     error EntryDoesNotExist();
     
     struct Entry {
-        bytes sig;  // Fixed size for ECDSA signatures (65 bytes)
+        bytes sig;  
         uint48 t;
         bytes32 k;
     }
@@ -16,11 +15,9 @@ contract Ledger {
     mapping(bytes32 => Entry) private _entries;
 
     function SetTuple(bytes calldata sig, uint48 t, bytes32 k, bytes32 pid) external {
-        // Check if the entry already exists - use custom error instead of require
         if (_entries[pid].t != 0) revert EntryAlreadyExists();
         if (uint48(block.timestamp) >= t) revert TimestampMustBeFuture();
 
-        // Direct storage assignment without struct constructor
         Entry storage entry = _entries[pid];
         entry.sig = sig;
         entry.t = t;
