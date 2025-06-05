@@ -9,7 +9,7 @@ contract ThirdProtocol {
     
     struct Entry {
         address sender;
-        uint48 t2;       // Using uint48 instead of uint256 for gas savings
+        uint48 t2;       
         bytes sig;
         // commitment c
         bytes32 c;
@@ -19,7 +19,6 @@ contract ThirdProtocol {
 
     mapping(bytes32 pid => Entry) private _entries;
     
-    // Custom errors for gas savings
     error OnlyBeforeT1();
     error T2MustBeFuture();
     error T2MustBeAfterT1();
@@ -48,7 +47,6 @@ contract ThirdProtocol {
         uint48 t2, 
         address alice
     ) external {
-        // Use custom errors instead of require statements
         if (uint48(block.timestamp) >= t1) revert OnlyBeforeT1();
         if (t2 <= uint48(block.timestamp)) revert T2MustBeFuture();
         if (t2 <= t1) revert T2MustBeAfterT1();
@@ -64,13 +62,11 @@ contract ThirdProtocol {
         bytes32 bobHash = keccak256(abi.encodePacked(c, h, t2, pid));
         if (!_verify(bobHash, sigb, msg.sender)) revert InvalidSignature();
         
-        // Store the entry directly without struct initialization
         Entry storage entry = _entries[pid];
         entry.sender = alice;
         entry.sig = sigb;
         entry.t2 = t2;
         entry.c = c;
-        // No need to set k to 0 as it's the default value
     }
 
     function SendOp(bytes32 k, uint256 r, bytes32 pid) external {
@@ -84,7 +80,7 @@ contract ThirdProtocol {
         bytes32 commitment = keccak256(abi.encodePacked(k, r));
         if (commitment != e.c) revert InvalidCommitment();
 
-        e.k = k; // Set the encryption key
+        e.k = k; 
     }
 
     function GetEntry(bytes32 pid) external view returns (Entry memory) {
