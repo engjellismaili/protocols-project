@@ -41,8 +41,8 @@ describe("SecondProtocol", function () {
             
             // Set up the parameters
             const currentTimestamp = await secondProtocol.getTimestamp();
-            const t1 = currentTimestamp + BigInt(7200); // 2 hours in the future (MUST BE AFTER CURRENT TIME)
-            const t2 = currentTimestamp + BigInt(10800); // 3 hours in the future (MUST BE AFTER t1)
+            const t1 = currentTimestamp + BigInt(7200); 
+            const t2 = currentTimestamp + BigInt(10800); 
             
             // Create the message hashes
             const aliceMessageHash = ethers.solidityPackedKeccak256(
