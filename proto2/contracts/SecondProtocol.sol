@@ -7,7 +7,6 @@ contract SecondProtocol {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
     
-    // Use uint48 for timestamps to save gas
     struct Entry {
         address sender;
         bytes sig;
@@ -17,7 +16,6 @@ contract SecondProtocol {
 
     mapping(bytes32 pid => Entry) private _entries;
     
-    // Custom errors instead of require statements
     error EntryAlreadyExists();
     error InvalidSignature();
     error T2MustBeFuture();
@@ -43,32 +41,27 @@ contract SecondProtocol {
         bytes calldata sigb, 
         address alice
     ) external {
-        // Use custom errors instead of require
         if (t2 <= uint48(block.timestamp)) revert T2MustBeFuture();
         if (uint48(block.timestamp) >= t1) revert OnlyBeforeT1();
         
         bytes32 pid = _pid(alice, msg.sender, h);
         if (_entries[pid].sender != address(0)) revert EntryAlreadyExists();
 
-        // Verify Alice's signature (siga)
         bytes32 aliceHash = keccak256(abi.encodePacked(h, t1, t2, msg.sender));
         if (!_verify(aliceHash, siga, alice)) revert InvalidSignature();
         
         bytes32 bobHash = keccak256(abi.encodePacked(h, t2));
         if (!_verify(bobHash, sigb, msg.sender)) revert InvalidSignature();
 
-        // Store the entry directly without struct initialization
         Entry storage entry = _entries[pid];
         entry.sender = alice;
         entry.sig = sigb;
         entry.t2 = t2;
-        // No need to set k to 0 as it's the default
     }
 
     function SetK(bytes32 pid, bytes32 k) external {
         Entry storage e = _entries[pid];
         
-        // Use custom errors and cache the sender check
         if (e.sender == address(0)) revert UnknownPid();
         if (msg.sender != e.sender) revert NotAllowed();
         if (uint48(block.timestamp) > e.t2) revert DeadlinePassed();
