@@ -24,7 +24,7 @@ contract Ledger {
         entry.k = k;
     }
 
-    function GetTuple(bytes32 pid) external view returns (bytes memory sig, uint48 t, bytes32 k) {
+    function GetEntry(bytes32 pid) external view returns (bytes memory sig, uint48 t, bytes32 k) {
         Entry storage entry = _entries[pid];
         if (entry.t == 0) revert EntryDoesNotExist();
 

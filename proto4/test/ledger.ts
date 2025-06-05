@@ -94,7 +94,7 @@ describe("Ledger", function () {
             console.log(`Gas used for SetTuple: ${receipt?.gasUsed.toString()}`);
             
             // Verify the tuple was stored correctly
-            const [sig, t, k] = await ledger.GetTuple(testPid);
+            const [sig, t, k] = await ledger.GetEntry(testPid);
             expect(sig).to.equal(signature);
             expect(t).to.equal(futureTime);
             expect(k).to.equal(testKey);
@@ -193,19 +193,19 @@ describe("Ledger", function () {
             console.log(`Gas used for second SetTuple: ${receipt2?.gasUsed.toString()}`);
             
             // Verify both tuples
-            const [sig1, t1, k1] = await ledger.GetTuple(testPid);
+            const [sig1, t1, k1] = await ledger.GetEntry(testPid);
             expect(sig1).to.equal(signature1);
             expect(t1).to.equal(futureTime);
             expect(k1).to.equal(testKey);
             
-            const [sig2, t2, k2] = await ledger.GetTuple(testPid2);
+            const [sig2, t2, k2] = await ledger.GetEntry(testPid2);
             expect(sig2).to.equal(signature2);
             expect(t2).to.equal(futureTime);
             expect(k2).to.equal(testKey2);
         });
     });
 
-    describe("GetTuple", function () {
+    describe("GetEntry", function () {
         it("should retrieve a previously set tuple", async function () {
             const contractTimestamp = await ledger.getTimestamp();
             const futureTime = Number(contractTimestamp + BigInt(3600)); // 1 hour in the future
@@ -222,14 +222,14 @@ describe("Ledger", function () {
             await ledger.connect(addr1).SetTuple(signature, futureTime, testKey, testPid);
             
             // Get the tuple and verify
-            const [sig, t, k] = await ledger.GetTuple(testPid);
+            const [sig, t, k] = await ledger.GetEntry(testPid);
             expect(sig).to.equal(signature);
             expect(t).to.equal(futureTime);
             expect(k).to.equal(testKey);
             
-            // Estimate gas for GetTuple
-            const gasEstimate = await ledger.GetTuple.estimateGas(testPid);
-            console.log(`Gas estimate for GetTuple (only costs gas when called from contracts): ${gasEstimate.toString()}`);
+            // Estimate gas for GetEntry
+            const gasEstimate = await ledger.GetEntry.estimateGas(testPid);
+            console.log(`Gas estimate for GetEntry (only costs gas when called from contracts): ${gasEstimate.toString()}`);
         });
         
         it("should reject retrieving non-existent tuple", async function () {
@@ -237,7 +237,7 @@ describe("Ledger", function () {
             
             // Attempt to get a non-existent tuple should fail
             await expect(
-                ledger.GetTuple(nonExistentPid)
+                ledger.GetEntry(nonExistentPid)
             ).to.be.revertedWithCustomError(ledger, "EntryDoesNotExist");
         });
     });
@@ -330,9 +330,9 @@ describe("Ledger", function () {
             const setReceipt = await setTx.wait();
             console.log(`Gas used for SetTuple: ${setReceipt?.gasUsed.toString()}`);
             
-            // GetTuple gas estimate
-            const getTupleEstimate = await ledger.GetTuple.estimateGas(testPid);
-            console.log(`Gas estimate for GetTuple: ${getTupleEstimate.toString()}`);
+            // GetEntry gas estimate
+            const GetEntryEstimate = await ledger.GetEntry.estimateGas(testPid);
+            console.log(`Gas estimate for GetEntry: ${GetEntryEstimate.toString()}`);
             
             // getTimestamp gas estimate
             const getTimestampEstimate = await ledger.getTimestamp.estimateGas();
@@ -391,7 +391,7 @@ describe("Ledger", function () {
             console.log("+-----------------------+------------------+");
             console.log(`| Deployment            | ${deployEstimate.toString().padStart(16)} |`);
             console.log(`| SetTuple              | ${setReceipt?.gasUsed.toString().padStart(16)} |`);
-            console.log(`| GetTuple (estimate)   | ${getTupleEstimate.toString().padStart(16)} |`);
+            console.log(`| GetEntry (estimate)   | ${GetEntryEstimate.toString().padStart(16)} |`);
             console.log(`| getTimestamp          | ${getTimestampEstimate.toString().padStart(16)} |`);
             console.log("+-----------------------+------------------+");
         });
