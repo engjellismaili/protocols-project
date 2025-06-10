@@ -32,12 +32,23 @@ npm -v                              # ensure npm is present
 
 # (Optional) upgrade npm itself
 npm install --global npm
+```
+At this point, you have two possibilities. Either you want to implement a new protocol, so you should run :
 
+ ```bash
 # Initialise a fresh Hardhat project (if starting from scratch)
 mkdir my-proto && cd my-proto
 npm init --yes
 npm install --save-dev hardhat
 npx hardhat init
+```
+
+Or, if you want to run one of the present protocol :
+
+```bash
+cd protox                           # x being the id of the protocol
+npm init --yes
+npm uninstall --save-dev hardhat-gas-reporter            # there are some dependecies error with this library, you need to uninstall it first before installing it again
 ```
 
 At this point the directory layout should resemble:
