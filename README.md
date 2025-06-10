@@ -49,6 +49,7 @@ Or, if you want to run one of the present protocol :
 cd protox                           # x being the id of the protocol
 npm init --yes
 npm uninstall --save-dev hardhat-gas-reporter            # there are some dependecies error with this library, you need to uninstall it first before installing it again
+npm install --save-dev hardhat
 ```
 
 At this point the directory layout should resemble:
